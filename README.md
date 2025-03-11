@@ -39,30 +39,33 @@ The application will primarily function as a client-side solution, using browser
 
 ## Development Roadmap
 
-### Phase 1: Foundation (Current)
+### Phase 1: Foundation (Completed)
 - [x] Project setup and documentation
-- [ ] Frontend application structure
-- [ ] Browser storage implementation
-- [ ] Basic UI components
+- [x] Frontend application structure
+- [x] Browser storage implementation
+- [x] Basic UI components
+- [x] Azure Static Web App deployment
 
-### Phase 2: Core Functionality
-- [ ] Supervisor briefing form creation
-- [ ] Team member sign-on interface
-- [ ] Digital signature implementation
-- [ ] Form validation
-- [ ] PDF generation
+### Phase 2: Core Functionality (Completed)
+- [x] Supervisor briefing form creation
+- [x] Team member sign-on interface
+- [x] Digital signature implementation
+- [x] Form validation
+- [x] PDF generation
 
-### Phase 3: Integration & Export
-- [ ] Email functionality
-- [ ] Data export (PDF)
-- [ ] Offline capability
+### Phase 3: Azure Integration (Current)
+- [ ] Azure Cosmos DB implementation
+- [ ] Azure Functions API layer
+- [ ] Data migration from browser storage
+- [ ] Basic authentication system
+- [ ] Pre-populated user information
+
+### Phase 4: Advanced Features
+- [ ] Comprehensive reporting
+- [ ] Export options enhancement
+- [ ] Email scheduling
 - [ ] Mobile responsiveness optimization
-
-### Phase 4: Advanced Features (Future)
-- [ ] Azure backend integration (if needed)
-- [ ] Authentication system
-- [ ] Cloud data storage
-- [ ] Analytics dashboard
+- [ ] Offline capability improvements
 
 ## Database Schema
 
@@ -304,3 +307,96 @@ As the application grows, you may want to integrate additional Azure services:
     ]
   }
   ```
+
+## Azure Service Enhancements
+
+After successfully deploying the application to Azure Static Web Apps, the following enhancements will be implemented to leverage Azure cloud services for improved functionality, data persistence, and reporting capabilities.
+
+### 1. Database Migration (Azure Cosmos DB)
+
+The application will transition from browser-based storage (IndexedDB) to Azure Cosmos DB for robust data persistence:
+
+- **Account Setup**:
+  - SQL API for flexible querying
+  - Australia East region for optimal performance
+  - Session consistency level for balance of performance and consistency
+
+- **Data Structure**:
+  - Database: `PrestartApp`
+  - Containers:
+    - `briefings`: Stores all briefing documents
+    - `attendances`: Records sign-on/sign-off information
+    - `users`: Stores supervisor and worker information
+    - `projects`: Maintains project and location data
+
+- **Migration Process**:
+  - Develop data migration utility
+  - Implement data validation during transfer
+  - Maintain backward compatibility during transition
+
+### 2. API Layer (Azure Functions)
+
+A serverless API layer will be implemented using Azure Functions to handle data operations:
+
+- **Function App Structure**:
+  - HTTP-triggered functions for CRUD operations
+  - Timer-triggered functions for scheduled reports
+  - Queue-triggered functions for background processing
+
+- **API Endpoints**:
+  - `/api/briefings`: Manage briefing documents
+  - `/api/attendances`: Handle sign-on/sign-off records
+  - `/api/users`: Manage user information
+  - `/api/projects`: Handle project data
+  - `/api/reports`: Generate and retrieve reports
+
+### 3. Authentication System
+
+A basic authentication system will be implemented using Azure Easy Auth:
+
+- **Authentication Flow**:
+  - Username/password authentication
+  - JWT token-based session management
+  - Role-based access control (Supervisor, Worker, Admin)
+
+- **Security Measures**:
+  - HTTPS enforcement
+  - Token expiration and refresh
+  - Input validation and sanitization
+  - Rate limiting
+
+### 4. Pre-populated Information
+
+The application will be enhanced to support pre-populated information for supervisors and workers:
+
+- **User Management**:
+  - Bulk import of user data
+  - User profile management
+  - Active/inactive status tracking
+
+- **UI Enhancements**:
+  - Searchable dropdowns for user selection
+  - Auto-complete fields for supervisor names
+  - Quick-select for frequent team compositions
+
+### 5. Reporting Functionality
+
+Comprehensive reporting capabilities will be added:
+
+- **Report Types**:
+  - Attendance reports (by project, date range, supervisor)
+  - Safety compliance reports (hazards, incidents, BAC compliance)
+  - Project management reports (briefing completion, work scope tracking)
+
+- **Export Options**:
+  - PDF export (enhanced from current functionality)
+  - Excel export for data analysis
+  - Email scheduling for automated report distribution
+
+### Implementation Timeline
+
+| Phase | Duration | Features |
+|-------|----------|----------|
+| 1 | 2-3 weeks | Azure Cosmos DB setup, Basic API layer, Data migration |
+| 2 | 2-3 weeks | Authentication system, User management, Pre-populated dropdowns |
+| 3 | 3-4 weeks | Reporting functionality, Export options, Email integration |

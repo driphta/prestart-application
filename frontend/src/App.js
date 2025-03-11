@@ -8,6 +8,7 @@ import BriefingForm from './pages/BriefingForm';
 import SignOnSheet from './pages/SignOnSheet';
 import ViewBriefing from './pages/ViewBriefing';
 import NotFound from './pages/NotFound';
+import MigrationModal from './components/MigrationModal';
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -198,6 +199,7 @@ function App() {
         </Routes>
       </Container>
       <Footer />
+      <MigrationModal />
     </ThemeProvider>
   );
 }
