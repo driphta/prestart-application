@@ -55,6 +55,13 @@ jobs:
           echo "Build completed. Contents of build directory:"
           ls -la build
       
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          # Explicitly specify Aqura Technologies tenant
+          allow-no-subscriptions: true
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
