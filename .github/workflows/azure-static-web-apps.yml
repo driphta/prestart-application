@@ -16,6 +16,8 @@ jobs:
     name: Build and Deploy Job
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       
       - name: Set up Node.js
         uses: actions/setup-node@v2
@@ -27,7 +29,12 @@ jobs:
           cd frontend
           npm ci
       
-      - name: Build And Deploy
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+      
+      - name: Deploy to Azure Static Web Apps
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -36,5 +43,4 @@ jobs:
           app_location: "/frontend"
           api_location: ""
           output_location: "build"
-          skip_app_build: false
-          action: "upload"
+          deployment_action: "upload"
