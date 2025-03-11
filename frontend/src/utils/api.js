@@ -74,9 +74,27 @@ export const getProjects = async () => {
   return fetchWithError(`${API_BASE_URL}/GetProjects`);
 };
 
+export const getProject = async (id) => {
+  return fetchWithError(`${API_BASE_URL}/GetProject?id=${id}`);
+};
+
+export const createProject = async (projectData) => {
+  return fetchWithError(`${API_BASE_URL}/CreateProject`, {
+    method: 'POST',
+    body: JSON.stringify(projectData),
+  });
+};
+
 // Users API methods
 export const getUsers = async () => {
   return fetchWithError(`${API_BASE_URL}/GetUsers`);
+};
+
+export const createUser = async (userData) => {
+  return fetchWithError(`${API_BASE_URL}/CreateUser`, {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
 };
 
 export const getUsersByRole = async (role) => {

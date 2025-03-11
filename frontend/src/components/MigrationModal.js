@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Button, 
+  Button,
+  useDisclosure
+} from '@chakra-ui/react';
+import { 
   Modal, 
   ModalOverlay, 
   ModalContent, 
   ModalHeader, 
   ModalFooter, 
   ModalBody, 
-  ModalCloseButton,
+  ModalCloseButton
+} from '@chakra-ui/modal';
+import {
   Text,
-  Progress,
-  Alert,
-  AlertIcon,
-  VStack,
-  Box,
   Heading,
-  useDisclosure
-} from '@chakra-ui/react';
+  Box,
+  VStack
+} from '@chakra-ui/layout';
+import { Progress } from '@chakra-ui/progress';
+import { Alert, AlertIcon } from '@chakra-ui/alert';
 import { migrateData, checkMigrationStatus } from '../utils/dbMigration';
 import { setUseApi } from '../utils/db';
 
