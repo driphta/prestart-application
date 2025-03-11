@@ -195,118 +195,28 @@ For questions or support, please contact [Project Manager Name] at [email@exampl
 
 ### Prerequisites
 
-- **Azure Account**: Active Azure subscription (ID: 15a943e0-94ac-41e7-af2d-a76f98ad61de)
-- **GitHub Account**: For source code repository (recommended for CI/CD)
-- **Node.js**: Version 14.x or higher
-- **npm**: Version 6.x or higher
-- **Azure CLI**: Latest version
-- **Visual Studio Code**: With Azure extensions (recommended)
+- Azure account with active subscription
+- GitHub account for source control
+- Node.js and npm installed locally
 
-### Step 1: Prepare Your Application
+### Deployment Steps
 
-1. Ensure your application is working correctly locally
-2. Update any environment-specific configurations
-3. Create a production build of your React application:
-   ```bash
-   cd frontend
-   npm run build
-   ```
+1. **Create an Azure Static Web App**:
+   - Go to the Azure Portal
+   - Create a new Static Web App resource
+   - Connect to your GitHub repository
+   - Configure build settings:
+     - App location: `/frontend`
+     - API location: (leave empty or specify `/api` if using Azure Functions)
+     - Output location: `build`
 
-### Step 2: Set Up GitHub Repository (Recommended)
+2. **Set up GitHub Actions**:
+   - The deployment workflow is automatically created in `.github/workflows/`
+   - Ensure the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret is configured in GitHub
 
-1. Create a new GitHub repository
-2. Initialize Git in your local project:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   ```
-3. Connect to your GitHub repository:
-   ```bash
-   git remote add origin https://github.com/yourusername/prestart-application.git
-   git branch -M main
-   git push -u origin main
-   ```
-
-### Step 3: Deploy to Azure Static Web Apps
-
-Azure Static Web Apps is the recommended service for hosting this React application since it's primarily a frontend application using browser storage.
-
-#### Deploy via GitHub (Recommended)
-
-1. In the Azure Portal (https://portal.azure.com), sign in with your account
-2. Search for "Static Web Apps" and click "Create"
-3. Configure the basics:
-   - **Subscription**: 15a943e0-94ac-41e7-af2d-a76f98ad61de
-   - **Resource Group**: Create new > "PrestartApp-RG"
-   - **Name**: Prestart Application
-   - **Region**: Australia East (best for Australian users)
-   - **SKU**: Free (or Standard if you need custom domains)
-
-4. Sign in with GitHub and select:
-   - **Organization**: Your GitHub username
-   - **Repository**: prestart-application (or your repository name)
-   - **Branch**: main
-
-5. Configure the build settings:
-   - **Build Preset**: React
-   - **App location**: `/frontend`
-   - **Api location**: Leave empty
-   - **Output location**: `build`
-
-6. Click "Review + create" and then "Create"
-7. Wait for the deployment to complete (this may take a few minutes)
-
-### Step 4: Configure Custom Domain (Optional)
-
-1. In the Azure Portal, navigate to your Static Web App
-2. Go to "Custom domains"
-3. Add your domain and follow the verification process
-
-### Step 5: Set Up GitHub Actions for Continuous Deployment
-
-The GitHub Actions workflow file will be automatically created in your repository when you deploy to Azure Static Web Apps. This workflow will:
-
-1. Automatically build and deploy your application when changes are pushed to the main branch
-2. Create preview environments for pull requests
-3. Remove preview environments when pull requests are closed
-
-You can find the workflow file in your GitHub repository under `.github/workflows/`.
-
-### Step 6: Test Your Deployed Application
-
-1. In the Azure Portal, navigate to your Static Web App
-2. Click on the URL provided in the overview page
-3. Verify that your application is working correctly, including:
-   - Browser storage (IndexedDB) functionality
-   - PDF generation
-   - All UI components and features
-
-### Step 7: Future Azure Service Integration
-
-As the application grows, you may want to integrate additional Azure services:
-
-- **Azure Functions**: For server-side logic if needed
-- **Azure Communication Services**: For email integration (to send PDFs to Project Managers)
-- **Azure AD B2C**: For authentication
-- **Azure Cosmos DB**: If you decide to move from browser storage to cloud storage
-
-### Troubleshooting
-
-- **Browser Storage**: Ensure IndexedDB works correctly in the deployed environment
-- **CORS Issues**: If integrating with other services, check CORS configurations
-- **Routing**: If you encounter routing issues, you may need to add a `routes.json` file in your app's public folder:
-  ```json
-  {
-    "routes": [
-      {
-        "route": "/*",
-        "serve": "/index.html",
-        "statusCode": 200
-      }
-    ]
-  }
-  ```
+3. **Deploy Updates**:
+   - Push changes to your main branch
+   - GitHub Actions will automatically build and deploy your application
 
 ## Azure Service Enhancements
 
@@ -400,3 +310,20 @@ Comprehensive reporting capabilities will be added:
 | 1 | 2-3 weeks | Azure Cosmos DB setup, Basic API layer, Data migration |
 | 2 | 2-3 weeks | Authentication system, User management, Pre-populated dropdowns |
 | 3 | 3-4 weeks | Reporting functionality, Export options, Email integration |
+
+## Troubleshooting
+
+- **Browser Storage**: Ensure IndexedDB works correctly in the deployed environment
+- **CORS Issues**: If integrating with other services, check CORS configurations
+- **Routing**: If you encounter routing issues, you may need to add a `routes.json` file in your app's public folder:
+  ```json
+  {
+    "routes": [
+      {
+        "route": "/*",
+        "serve": "/index.html",
+        "statusCode": 200
+      }
+    ]
+  }
+  ```
