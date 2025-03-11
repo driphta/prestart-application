@@ -9,6 +9,11 @@ This web application digitizes the pre-shift briefing process for construction a
 
 The application will primarily function as a client-side solution, using browser storage for data persistence and generating PDFs for email distribution to project managers.
 
+## Deployment Status
+
+The application is currently deployed to Azure Static Web Apps and can be accessed at:
+https://black-glacier-0e616cd10.6.azurestaticapps.net
+
 ## Key Features
 
 ### Supervisor Features
