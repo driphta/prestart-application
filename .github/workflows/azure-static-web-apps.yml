@@ -1,4 +1,14 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
 name: Azure Static Web Apps CI/CD
+
+env:
+  APP_LOCATION: "/frontend" # location of your client code
+  API_LOCATION: "" # location of your api source code - optional
+  OUTPUT_LOCATION: "build" # location of client code build output
 
 on:
   push:
@@ -9,80 +19,52 @@ on:
     branches:
       - main
 
+permissions:
+  issues: write
+  contents: read
+  pull-requests: write
+
 jobs:
-  build_and_deploy_job:
+  build_and_deploy:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
+    name: Build and Deploy
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
-          lfs: false
-      
+          
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '16'
-      
-      - name: Install dependencies
+          node-version: '18'
+          
+      - name: Install dependencies and build
         run: |
           cd frontend
           npm ci
-      
-      - name: Debug - Print Environment
-        run: |
-          echo "GitHub Actions environment:"
-          echo "GITHUB_WORKFLOW: $GITHUB_WORKFLOW"
-          echo "GITHUB_ACTION: $GITHUB_ACTION"
-          echo "GITHUB_ACTOR: $GITHUB_ACTOR"
-          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-          echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
-          echo "GITHUB_SHA: $GITHUB_SHA"
-          echo "GITHUB_REF: $GITHUB_REF"
-      
-      - name: Debug - List Files
-        run: |
-          echo "Frontend directory contents:"
-          ls -la frontend
-          echo "Frontend build directory (if exists):"
-          ls -la frontend/build || echo "Build directory doesn't exist yet"
-      
-      - name: Manual Build Step
-        run: |
-          cd frontend
           npm run build
-          echo "Build completed. Contents of build directory:"
-          ls -la build
-      
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          # Explicitly specify Aqura Technologies tenant
-          allow-no-subscriptions: true
-      
+          
       - name: Build And Deploy
         id: builddeploy
-        uses: Azure/static-web-apps-deploy@v0.9.0
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/frontend"
-          api_location: ""
-          output_location: "build"
+          app_location: ${{ env.APP_LOCATION }}
+          api_location: ${{ env.API_LOCATION }}
+          output_location: ${{ env.OUTPUT_LOCATION }}
           skip_app_build: true # Skip the build since we've already built the app
 
-  close_pull_request_job:
+  close_pull_request:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
-    name: Close Pull Request Job
+    name: Close Pull Request
     steps:
       - name: Close Pull Request
         id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v0.9.0
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "close"
-          app_location: "/frontend"
