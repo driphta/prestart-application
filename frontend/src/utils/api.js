@@ -1,214 +1,306 @@
-// Base URL for your Azure Functions
-const API_BASE_URL = 'https://prestart-api1.azurewebsites.net/api';
+import axios from 'axios';
 
-// Helper function for making API requests
-const fetchWithError = async (url, options = {}) => {
-  // Add authentication token to requests if available
-  const token = localStorage.getItem('auth_token');
-  const headers = {
+// Base URL for API requests
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://prestart-api1.azurewebsites.net/api';
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
     'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  },
+});
 
-  if (token && !url.includes('/login') && !url.includes('/register')) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+// Add request interceptor to add auth token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`);
-  }
-
-  return response.json();
-};
-
-// Authentication API methods
-export const login = async (email, password) => {
-  return fetchWithError(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-};
-
+// Helper functions for API requests
 export const register = async (userData) => {
-  return fetchWithError(`${API_BASE_URL}/auth/register`, {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  });
+  try {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const login = async (email, password) => {
+  try {
+    const response = await api.post('/auth/login', { email, password });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const validateToken = async (token) => {
-  return fetchWithError(`${API_BASE_URL}/auth/validate-token`, {
-    method: 'POST',
-    body: JSON.stringify({ token }),
-  });
+  try {
+    const response = await api.post('/auth/validate-token', { token });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const forgotPassword = async (email) => {
-  return fetchWithError(`${API_BASE_URL}/auth/forgot-password`, {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
+  try {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const resetPassword = async (token, newPassword) => {
-  return fetchWithError(`${API_BASE_URL}/auth/reset-password`, {
-    method: 'POST',
-    body: JSON.stringify({ token, newPassword }),
-  });
+  try {
+    const response = await api.post('/auth/reset-password', { token, newPassword });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const changePassword = async (userId, currentPassword, newPassword) => {
-  return fetchWithError(`${API_BASE_URL}/auth/change-password`, {
-    method: 'POST',
-    body: JSON.stringify({ userId, currentPassword, newPassword }),
-  });
+  try {
+    const response = await api.post('/auth/change-password', { userId, currentPassword, newPassword });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const updateProfile = async (userId, profileData) => {
-  return fetchWithError(`${API_BASE_URL}/auth/update-profile`, {
-    method: 'POST',
-    body: JSON.stringify({ userId, ...profileData }),
-  });
+  try {
+    const response = await api.post('/auth/update-profile', { userId, ...profileData });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const getUserByEmail = async (email) => {
-  return fetchWithError(`${API_BASE_URL}/user/by-email?email=${encodeURIComponent(email)}`);
+  try {
+    const response = await api.get(`/user/by-email?email=${encodeURIComponent(email)}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const getUser = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/user/${id}`);
+  try {
+    const response = await api.get(`/user/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const updateUser = async (id, userData) => {
-  return fetchWithError(`${API_BASE_URL}/user/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(userData),
-  });
+  try {
+    const response = await api.put(`/user/${id}`, userData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
-// Token management
-export const saveToken = async (tokenData) => {
-  return fetchWithError(`${API_BASE_URL}/token`, {
-    method: 'POST',
-    body: JSON.stringify(tokenData),
-  });
-};
-
-export const getTokenByValue = async (token) => {
-  return fetchWithError(`${API_BASE_URL}/token?value=${encodeURIComponent(token)}`);
-};
-
-export const deleteToken = async (token) => {
-  return fetchWithError(`${API_BASE_URL}/token?value=${encodeURIComponent(token)}`, {
-    method: 'DELETE',
-  });
-};
-
-// Briefing API methods
-export const getBriefings = async () => {
-  return fetchWithError(`${API_BASE_URL}/briefing`);
-};
-
-export const getBriefingsByUser = async (userId, role) => {
-  return fetchWithError(`${API_BASE_URL}/briefing/by-user?userId=${userId}&role=${role}`);
-};
-
-export const getBriefing = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/briefing/${id}`);
-};
-
-export const createBriefing = async (briefingData) => {
-  return fetchWithError(`${API_BASE_URL}/briefing`, {
-    method: 'POST',
-    body: JSON.stringify(briefingData),
-  });
-};
-
-export const updateBriefing = async (briefingData) => {
-  return fetchWithError(`${API_BASE_URL}/briefing/${briefingData.id}`, {
-    method: 'PUT',
-    body: JSON.stringify(briefingData),
-  });
-};
-
-export const deleteBriefing = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/briefing/${id}`, {
-    method: 'DELETE',
-  });
-};
-
-// Attendance API methods
-export const getAttendances = async (briefingId) => {
-  return fetchWithError(`${API_BASE_URL}/attendance?briefingId=${briefingId}`);
-};
-
-export const createAttendance = async (attendanceData) => {
-  return fetchWithError(`${API_BASE_URL}/attendance`, {
-    method: 'POST',
-    body: JSON.stringify(attendanceData),
-  });
-};
-
-export const updateAttendance = async (attendanceData) => {
-  return fetchWithError(`${API_BASE_URL}/attendance/${attendanceData.id}`, {
-    method: 'PUT',
-    body: JSON.stringify(attendanceData),
-  });
-};
-
-export const deleteAttendance = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/attendance/${id}`, {
-    method: 'DELETE',
-  });
-};
-
-// Projects API methods
-export const getProjects = async () => {
-  return fetchWithError(`${API_BASE_URL}/project`);
-};
-
-export const getProject = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/project/${id}`);
-};
-
-export const createProject = async (projectData) => {
-  return fetchWithError(`${API_BASE_URL}/project`, {
-    method: 'POST',
-    body: JSON.stringify(projectData),
-  });
-};
-
-export const updateProject = async (projectData) => {
-  return fetchWithError(`${API_BASE_URL}/project/${projectData.id}`, {
-    method: 'PUT',
-    body: JSON.stringify(projectData),
-  });
-};
-
-export const deleteProject = async (id) => {
-  return fetchWithError(`${API_BASE_URL}/project/${id}`, {
-    method: 'DELETE',
-  });
-};
-
-// Users API methods
 export const getUsers = async () => {
-  return fetchWithError(`${API_BASE_URL}/user`);
-};
-
-export const createUser = async (userData) => {
-  return fetchWithError(`${API_BASE_URL}/user`, {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  });
+  try {
+    const response = await api.get('/user');
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
 
 export const getUsersByRole = async (role) => {
-  return fetchWithError(`${API_BASE_URL}/user?role=${role}`);
+  try {
+    const response = await api.get(`/user?role=${role}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
 };
+
+export const saveToken = async (tokenData) => {
+  try {
+    const response = await api.post('/token', tokenData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getTokenByValue = async (token) => {
+  try {
+    const response = await api.get(`/token?value=${encodeURIComponent(token)}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const deleteToken = async (token) => {
+  try {
+    const response = await api.delete(`/token?value=${encodeURIComponent(token)}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getBriefings = async () => {
+  try {
+    const response = await api.get('/briefing');
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getBriefingsByUser = async (userId, role) => {
+  try {
+    const response = await api.get(`/briefing/by-user?userId=${userId}&role=${role}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getBriefing = async (id) => {
+  try {
+    const response = await api.get(`/briefing/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const createBriefing = async (briefingData) => {
+  try {
+    const response = await api.post('/briefing', briefingData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const updateBriefing = async (briefingData) => {
+  try {
+    const response = await api.put(`/briefing/${briefingData.id}`, briefingData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const deleteBriefing = async (id) => {
+  try {
+    const response = await api.delete(`/briefing/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getAttendances = async (briefingId) => {
+  try {
+    const response = await api.get(`/attendance?briefingId=${briefingId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const createAttendance = async (attendanceData) => {
+  try {
+    const response = await api.post('/attendance', attendanceData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const updateAttendance = async (attendanceData) => {
+  try {
+    const response = await api.put(`/attendance/${attendanceData.id}`, attendanceData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const deleteAttendance = async (id) => {
+  try {
+    const response = await api.delete(`/attendance/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getProjects = async () => {
+  try {
+    const response = await api.get('/project');
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const getProject = async (id) => {
+  try {
+    const response = await api.get(`/project/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const createProject = async (projectData) => {
+  try {
+    const response = await api.post('/project', projectData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const updateProject = async (projectData) => {
+  try {
+    const response = await api.put(`/project/${projectData.id}`, projectData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const deleteProject = async (id) => {
+  try {
+    const response = await api.delete(`/project/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export const createUser = async (userData) => {
+  try {
+    const response = await api.post('/users', userData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error('Network error');
+  }
+};
+
+export default api;

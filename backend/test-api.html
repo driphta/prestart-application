@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+    <script>
+        async function testEndpoint() {
+            const endpoint = document.getElementById('endpoint').value;
+            const method = document.getElementById('method').value;
+            const payload = document.getElementById('payload').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                let response;
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+                
+                if (method !== 'GET' && payload) {
+                    options.body = payload;
+                }
+                
+                response = await fetch(endpoint, options);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div style="color: green;">Success! Status: ${response.status}</div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="color: red;">Error: ${error.message}</div>
+                `;
+                console.error(error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>API Test</h1>
+    <div>
+        <label for="endpoint">API Endpoint:</label>
+        <input type="text" id="endpoint" style="width: 400px;" value="https://prestart-api1.azurewebsites.net/api/health" />
+    </div>
+    <div>
+        <label for="method">Method:</label>
+        <select id="method">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+        </select>
+    </div>
+    <div>
+        <label for="payload">Request Payload (JSON):</label>
+        <textarea id="payload" style="width: 400px; height: 100px;"></textarea>
+    </div>
+    <button onclick="testEndpoint()">Test API</button>
+    <div id="result" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;"></div>
+</body>
+</html>

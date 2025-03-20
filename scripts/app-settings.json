@@ -1,0 +1,8 @@
+{
+  "MONGODB_URI": "mongodb://your-cosmos-account:your-cosmos-key@your-cosmos-account.mongo.cosmos.azure.com:10255/your-database?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@your-cosmos-account@",
+  "JWT_SECRET": "your-super-secret-jwt-key-change-this-in-production",
+  "JWT_EXPIRE": "30d",
+  "NODE_ENV": "production",
+  "WEBSITE_NODE_DEFAULT_VERSION": "~16",
+  "SCM_DO_BUILD_DURING_DEPLOYMENT": "true"
+}

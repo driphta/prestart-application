@@ -5,6 +5,11 @@
   },
   "routes": [
     {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous", "authenticated"],
+      "backendUri": "https://prestart-api1.azurewebsites.net/api/{rest}"
+    },
+    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200
@@ -17,7 +22,10 @@
     }
   },
   "globalHeaders": {
-    "content-security-policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' data:; connect-src 'self' *.azurewebsites.net;"
+    "content-security-policy": "default-src 'self' https://prestart-api1.azurewebsites.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://prestart-api1.azurewebsites.net;",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   },
   "mimeTypes": {
     ".json": "application/json",

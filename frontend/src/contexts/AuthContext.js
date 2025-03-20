@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import db, { getUserByEmail, createUser, saveToken, getTokenByValue } from '../utils/db';
+import { login, register, createUser, validateToken } from '../utils/api';
 
 // Create the auth context
 export const AuthContext = createContext(null);
@@ -17,30 +17,16 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         // Check for existing token
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('token');
         if (token) {
-          try {
-            const storedToken = await getTokenByValue(token);
-            if (storedToken && storedToken.userId) {
-              const user = await db.users.get(storedToken.userId);
-              if (user) {
-                setUser(user);
-              } else {
-                localStorage.removeItem('authToken');
-              }
-            } else {
-              localStorage.removeItem('authToken');
-            }
-          } catch (error) {
-            console.error('Error checking token:', error);
-            localStorage.removeItem('authToken');
-          }
+          // Validate token with API
+          const userData = await validateToken(token);
+          setUser(userData);
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        setError(error.message);
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        localStorage.removeItem('token');
       } finally {
-        // Always set loading to false, even if there's an error
         setLoading(false);
       }
     };
@@ -48,103 +34,76 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // Login function
-  const login = async (email, password) => {
+  // Register a new user
+  const registerUser = async (userData) => {
+    setLoading(true);
+    setError(null);
     try {
-      console.log('Login attempt with:', { email, password });
-      const user = await getUserByEmail(email);
-      console.log('Found user:', user);
-      
-      if (!user) {
-        throw new Error('User not found');
-      }
-      
-      if (user.password !== password) {
-        throw new Error('Invalid password');
-      }
-
-      // Create and store token
-      const token = Math.random().toString(36).substring(2);
-      console.log('Generated token:', token);
-      
-      await saveToken({ token, userId: user.id });
-      console.log('Saved token');
-      
-      localStorage.setItem('authToken', token);
-      console.log('Set token in localStorage');
-
-      setUser(user);
-      console.log('Set user in context:', user);
-      
-      return user;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      const response = await register(userData);
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
+      return response.user;
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Register function
-  const register = async (userData) => {
+  // Login user
+  const loginUser = async (email, password) => {
+    setLoading(true);
+    setError(null);
     try {
-      const user = await createUser(userData);
-      return user;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+      const response = await login(email, password);
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
+      return response.user;
+    } catch (err) {
+      setError(err.message || 'Login failed');
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Logout function
-  const logout = async () => {
-    localStorage.removeItem('authToken');
+  // Logout user
+  const logoutUser = () => {
+    localStorage.removeItem('token');
     setUser(null);
   };
 
-  // Context value
-  const value = {
-    user,
-    login,
-    logout,
-    register,
-    loading,
-    error
+  // Update user profile
+  const updateUserProfile = async (userData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const updatedUser = await createUser({
+        ...user,
+        ...userData,
+      });
+      setUser(updatedUser);
+      return updatedUser;
+    } catch (err) {
+      setError(err.message || 'Profile update failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Only show loading state for the initial auth check
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const value = {
+    user,
+    loading,
+    error,
+    registerUser,
+    loginUser,
+    logoutUser,
+    updateUserProfile,
+  };
 
-  // Show error in a nice format
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center p-6 max-w-sm mx-auto bg-white rounded-xl shadow-md">
-          <div className="text-red-500 text-xl mb-4">⚠️ Error</div>
-          <p className="text-gray-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;

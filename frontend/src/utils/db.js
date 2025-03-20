@@ -2,7 +2,7 @@ import Dexie from 'dexie';
 import * as api from './api';
 
 // Set to true to use the API instead of IndexedDB
-let useApi = true;
+export const useApi = true;
 
 export const setUseApi = (value) => {
   useApi = value;

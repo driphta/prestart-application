@@ -926,3 +926,111 @@ To stay within the free tier limits:
 - [Azure Functions Documentation](https://docs.microsoft.com/en-us/azure/azure-functions/)
 - [Azure Static Web Apps Documentation](https://docs.microsoft.com/en-us/azure/static-web-apps/)
 - [Mongoose Documentation](https://mongoosejs.com/docs/)
+
+## Azure Deployment Configuration
+
+This application is deployed using Azure services:
+
+1. **Frontend**: Azure Static Web App
+2. **Backend**: Azure App Service
+3. **Database**: Azure Cosmos DB with MongoDB API
+
+### Deployment Prerequisites
+
+- Azure CLI installed and configured
+- Node.js and npm installed
+- PowerShell for running deployment scripts
+
+### Deployment Process
+
+#### Backend Deployment
+
+1. Deploy the backend to Azure App Service:
+   ```powershell
+   cd scripts
+   .\deploy-backend.ps1
+   ```
+
+2. Configure environment variables in Azure App Service:
+   - `MONGODB_URI`: Connection string to your Cosmos DB
+   - `JWT_SECRET`: Secret key for JWT authentication
+   - `NODE_ENV`: Set to "production"
+
+3. Troubleshooting backend deployment:
+   - Check App Service logs in Azure Portal
+   - Verify web.config configuration
+   - Ensure CORS is properly configured
+   - Test API endpoints directly using the `/api/health` endpoint
+
+#### Frontend Deployment
+
+1. Deploy the frontend to Azure Static Web App:
+   ```powershell
+   cd scripts
+   .\deploy-frontend.ps1
+   ```
+
+2. Configure environment variables for the frontend:
+   - `REACT_APP_API_URL`: URL to your backend API (https://prestart-api1.azurewebsites.net/api)
+
+3. Troubleshooting frontend deployment:
+   - Check browser console for CORS errors
+   - Verify Static Web App configuration in the Azure Portal
+   - Test API connectivity using browser developer tools
+
+### Known Issues and Troubleshooting
+
+#### API Connectivity Issues
+
+If you encounter "Failed to fetch" errors:
+
+1. **CORS Configuration**: Ensure CORS is properly configured in both Azure App Service and in the backend code
+2. **API Timeouts**: The App Service may be in a cold start state - try restarting the App Service
+3. **Network Issues**: Verify network connectivity between Static Web App and App Service
+4. **Authentication**: Check if authentication tokens are being correctly sent and processed
+
+#### User Creation Issues
+
+If user creation fails:
+
+1. Check the request payload in browser developer tools
+2. Verify the backend route is correctly handling the request
+3. Check for validation errors in the API response
+4. Ensure database connection is working properly
+
+#### Deployment Script Issues
+
+If deployment scripts fail:
+
+1. **Azure CLI Version**: The script includes fallbacks for different Azure CLI versions
+2. **Permissions**: Ensure you have proper permissions for Azure resources
+3. **Resource Availability**: Verify that Azure resources exist and are accessible
+
+### Local Development Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   # Install backend dependencies
+   cd backend
+   npm install
+
+   # Install frontend dependencies
+   cd ../frontend
+   npm install
+   ```
+
+3. Configure environment variables:
+   - Create `.env` files in both frontend and backend directories
+   - Follow the examples in `.env.example` files
+
+4. Run the applications:
+   ```bash
+   # Start backend
+   cd backend
+   npm run dev
+
+   # Start frontend
+   cd ../frontend
+   npm start
+   ```
