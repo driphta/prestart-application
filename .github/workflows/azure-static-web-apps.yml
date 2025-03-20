@@ -18,7 +18,38 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Build And Deploy
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+          
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+          
+      - name: Create staticwebapp.config.json
+        run: |
+          echo '{
+            "navigationFallback": {
+              "rewrite": "/index.html",
+              "exclude": ["/static/*", "/assets/*", "/*.{png,jpg,gif,svg,ico}"]
+            },
+            "routes": [
+              {
+                "route": "/*",
+                "rewrite": "/index.html"
+              }
+            ]
+          }' > frontend/build/staticwebapp.config.json
+          
+      - name: Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -28,6 +59,7 @@ jobs:
           app_location: "/frontend"
           api_location: ""
           output_location: "build"
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -40,5 +72,3 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "close"
-
-          
