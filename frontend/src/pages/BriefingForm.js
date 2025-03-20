@@ -35,6 +35,7 @@ const BriefingForm = () => {
     location: '',
     projectManager: '',
     supervisor: '',
+    projectNumber: '',
     weather: '',
     uvIndex: '',
     temperature: '',
@@ -160,10 +161,13 @@ const BriefingForm = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
+      console.log('Submitting briefing:', briefing);
       const savedId = await saveBriefing(briefing);
-      navigate(`/briefing/${savedId}`);
+      console.log('Briefing saved with ID:', savedId);
+      navigate('/'); // Navigate to dashboard after save
     } catch (error) {
       console.error('Error saving briefing:', error);
+      // TODO: Add user notification of error
     }
   };
 
@@ -232,6 +236,15 @@ const BriefingForm = () => {
               label="Location"
               value={briefing.location}
               onChange={handleInputChange('location')}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Project Number"
+              value={briefing.projectNumber || ''}
+              onChange={handleInputChange('projectNumber')}
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
           <Grid item xs={12} md={6}>

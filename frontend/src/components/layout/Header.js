@@ -15,7 +15,10 @@ import {
   Divider,
   Container,
   Tooltip,
-  useTheme
+  useTheme,
+  Avatar,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -25,11 +28,33 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import CloseIcon from '@mui/icons-material/Close';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
+import LoginIcon from '@mui/icons-material/Login';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Header = ({ toggleColorMode, mode }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
+  const { currentUser, logout, isAuthenticated, isProjectManager, isSiteSupervisor } = useAuth();
+
+  // User menu handling
+  const handleOpenUserMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseUserMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleCloseUserMenu();
+    logout();
+  };
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -38,19 +63,38 @@ const Header = ({ toggleColorMode, mode }) => {
     setDrawerOpen(open);
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'New Briefing', icon: <AddCircleOutlineIcon />, path: '/briefing/new' },
-    { text: 'Sign-On', icon: <PeopleIcon />, path: '/' },
-    { text: 'View Briefings', icon: <DescriptionIcon />, path: '/' }
-  ];
+  // Dynamic menu items based on authentication and role
+  const getMenuItems = () => {
+    const baseItems = [
+      { text: 'Dashboard', icon: <DashboardIcon />, path: '/' }
+    ];
 
-  const handleMenuItemClick = (path, index) => {
-    if (index === 2) {
-      navigate('/');
-    } else {
-      navigate(path);
+    // Add role-specific menu items when authenticated
+    if (isAuthenticated) {
+      // Site Supervisor can create new briefings
+      if (isSiteSupervisor) {
+        baseItems.push({ 
+          text: 'New Briefing', 
+          icon: <AddCircleOutlineIcon />, 
+          path: '/briefing/new' 
+        });
+      }
+
+      // Both roles can access various views
+      baseItems.push({ 
+        text: 'View Briefings', 
+        icon: <DescriptionIcon />, 
+        path: '/' 
+      });
     }
+
+    return baseItems;
+  };
+
+  const menuItems = getMenuItems();
+
+  const handleMenuItemClick = (path) => {
+    navigate(path);
     setDrawerOpen(false);
   };
 
@@ -80,12 +124,39 @@ const Header = ({ toggleColorMode, mode }) => {
         </IconButton>
       </Box>
       <Divider />
+      
+      {/* User info if authenticated */}
+      {isAuthenticated && (
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Avatar sx={{ width: 60, height: 60, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}>
+            {currentUser?.name?.charAt(0).toUpperCase() || <AccountCircleIcon />}
+          </Avatar>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {currentUser?.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {isProjectManager ? 'Project Manager' : 'Site Supervisor'}
+          </Typography>
+          <Button 
+            variant="outlined" 
+            size="small" 
+            component={RouterLink} 
+            to="/profile"
+            startIcon={<PersonIcon />}
+            sx={{ mt: 1 }}
+          >
+            My Profile
+          </Button>
+        </Box>
+      )}
+      
+      <Divider />
       <List>
-        {menuItems.map((item, index) => (
+        {menuItems.map((item) => (
           <ListItem 
             button 
             key={item.text} 
-            onClick={() => handleMenuItemClick(item.path, index)}
+            onClick={() => handleMenuItemClick(item.path)}
           >
             <ListItemIcon sx={{ color: 'primary.main' }}>
               {item.icon}
@@ -102,6 +173,30 @@ const Header = ({ toggleColorMode, mode }) => {
           </ListItemIcon>
           <ListItemText primary={`${theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode`} />
         </ListItem>
+
+        {isAuthenticated ? (
+          <ListItem button onClick={logout}>
+            <ListItemIcon sx={{ color: 'error.main' }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItem>
+        ) : (
+          <>
+            <ListItem button onClick={() => handleMenuItemClick('/login')}>
+              <ListItemIcon sx={{ color: 'primary.main' }}>
+                <LoginIcon />
+              </ListItemIcon>
+              <ListItemText primary="Login" />
+            </ListItem>
+            <ListItem button onClick={() => handleMenuItemClick('/register')}>
+              <ListItemIcon sx={{ color: 'primary.main' }}>
+                <HowToRegIcon />
+              </ListItemIcon>
+              <ListItemText primary="Register" />
+            </ListItem>
+          </>
+        )}
       </List>
     </Box>
   );
@@ -152,25 +247,101 @@ const Header = ({ toggleColorMode, mode }) => {
             >
               Dashboard
             </Button>
-            <Button
-              component={RouterLink}
-              to="/briefing/new"
-              sx={{ my: 2, color: 'inherit', display: 'block' }}
-            >
-              New Briefing
-            </Button>
+            
+            {isAuthenticated && isSiteSupervisor && (
+              <Button
+                component={RouterLink}
+                to="/briefing/new"
+                sx={{ my: 2, color: 'inherit', display: 'block' }}
+              >
+                New Briefing
+              </Button>
+            )}
           </Box>
 
-          {/* Theme toggle button */}
-          <Tooltip title={`Switch to ${theme.palette.mode === 'dark' ? 'light' : 'dark'} mode`}>
-            <IconButton 
-              sx={{ ml: 1 }} 
-              onClick={toggleColorMode} 
-              color="inherit"
-            >
-              {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-          </Tooltip>
+          {/* User authentication section */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Theme toggle button */}
+            <Tooltip title={`Switch to ${theme.palette.mode === 'dark' ? 'light' : 'dark'} mode`}>
+              <IconButton 
+                sx={{ ml: 1 }} 
+                onClick={toggleColorMode} 
+                color="inherit"
+              >
+                {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+              </IconButton>
+            </Tooltip>
+
+            {isAuthenticated ? (
+              <>
+                <Tooltip title="Account settings">
+                  <IconButton 
+                    onClick={handleOpenUserMenu} 
+                    sx={{ p: 0, ml: 2 }}
+                    aria-controls="menu-appbar"
+                    aria-haspopup="true"
+                  >
+                    <Avatar 
+                      alt={currentUser?.name} 
+                      sx={{ bgcolor: 'primary.light' }}
+                    >
+                      {currentUser?.name?.charAt(0).toUpperCase() || <AccountCircleIcon />}
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorEl}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorEl)}
+                  onClose={handleCloseUserMenu}
+                >
+                  <MenuItem onClick={() => { handleCloseUserMenu(); navigate('/profile'); }}>
+                    <ListItemIcon>
+                      <PersonIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography textAlign="center">Profile</Typography>
+                  </MenuItem>
+                  <Divider />
+                  <MenuItem onClick={handleLogout}>
+                    <ListItemIcon>
+                      <LogoutIcon fontSize="small" color="error" />
+                    </ListItemIcon>
+                    <Typography textAlign="center" color="error">Logout</Typography>
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Box sx={{ display: { xs: 'none', sm: 'flex' }, ml: 1 }}>
+                <Button 
+                  color="inherit" 
+                  component={RouterLink} 
+                  to="/login"
+                  sx={{ mr: 1 }}
+                >
+                  Login
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  color="inherit" 
+                  component={RouterLink}
+                  to="/register"
+                  sx={{ borderColor: 'primary.contrastText' }}
+                >
+                  Register
+                </Button>
+              </Box>
+            )}
+          </Box>
         </Toolbar>
       </Container>
       

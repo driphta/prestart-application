@@ -1,198 +1,363 @@
 import Dexie from 'dexie';
 import * as api from './api';
 
-// Create a Dexie database instance for local storage
-const db = new Dexie('sitePreStartApp');
+// Set to true to use the API instead of IndexedDB
+let useApi = true;
 
-// Define the database schema with tables and indexes
-db.version(1).stores({
-  briefings: '++id, date, location, projectManager, supervisor', // Primary key is id (auto-incremented)
-  attendances: '++id, briefingId, name, timeOn, timeOff, bac, [briefingId+name]', // Compound index for briefingId+name
-  projects: '++id, name, location',
-  users: '++id, name, role'
-});
-
-// Flag to determine if we should use API or local storage
-// This will be set to true once migration is complete
-let useApi = false;
-
-// Function to set the API usage flag
 export const setUseApi = (value) => {
   useApi = value;
 };
 
-// Define initial data for the application
-const initialData = {
-  projects: [
-    { name: 'Mulla Mulla', location: 'Mulla Mulla' },
-    { name: 'Site Office', location: 'Perth' },
-    { name: 'NPI Building', location: 'Port Hedland' }
-  ],
-  users: [
-    { name: 'Andrew Donaldson', role: 'supervisor' },
-    { name: 'Hermmy Mistry', role: 'project_manager' },
-    { name: 'Marshall Grove-Miller', role: 'team_member' },
-    { name: 'Chis Danzi', role: 'team_member' }
-  ]
+// Delete all existing databases first
+const deleteAllDatabases = async () => {
+  try {
+    const databases = await window.indexedDB.databases();
+    for (const { name } of databases) {
+      if (name && name.startsWith('site_prestart_')) {
+        console.log(`Deleting database: ${name}`);
+        await Dexie.delete(name);
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting databases:', error);
+  }
 };
 
-// Function to initialize the database with sample data
-export const initializeDatabase = async () => {
-  // Check if we already have data
-  const projectCount = await db.projects.count();
-  const userCount = await db.users.count();
+// Create database instance
+const createDatabase = async () => {
+  // First delete all existing databases
+  await deleteAllDatabases();
   
-  // Only populate if tables are empty
-  if (projectCount === 0) {
-    await db.projects.bulkAdd(initialData.projects);
+  // Create a new database with a timestamp
+  const dbName = `site_prestart_${Date.now()}`;
+  console.log(`Creating new database: ${dbName}`);
+  
+  const db = new Dexie(dbName);
+
+  try {
+    // Define schema with auto-incrementing keys
+    db.version(1).stores({
+      users: '++id, email',
+      projects: '++id',
+      briefings: '++id',
+      attendances: '++id, briefingId',
+      tokens: '++id, token'
+    });
+
+    // Open database
+    await db.open();
+    console.log('Database opened successfully');
+
+    // Create a test user if none exists
+    const userCount = await db.users.count();
+    if (userCount === 0) {
+      await db.users.add({
+        email: 'admin@driphta.com',
+        password: 'admin123',
+        name: 'Admin User',
+        role: 'project_manager'
+      });
+      console.log('Created admin user');
+    }
+
+    return db;
+  } catch (error) {
+    console.error('Error creating database:', error);
+    if (db.isOpen()) {
+      db.close();
+    }
+    throw error;
+  }
+};
+
+// Initialize database
+let db = null;
+
+const ensureDb = async () => {
+  if (!db || !db.isOpen()) {
+    db = await createDatabase();
+  }
+  return db;
+};
+
+// Database operations
+export const getUserByEmail = async (email) => {
+  if (useApi) {
+    try {
+      return await api.getUserByEmail(email);
+    } catch (error) {
+      console.error('API Error getting user by email:', error);
+      return null;
+    }
   }
   
-  if (userCount === 0) {
-    await db.users.bulkAdd(initialData.users);
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    return await db.users.where('email').equals(email).first();
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+};
+
+export const createUser = async (userData) => {
+  if (useApi) {
+    try {
+      return await api.register(userData);
+    } catch (error) {
+      console.error('API Error creating user:', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    const id = await db.users.add(userData);
+    return { ...userData, id };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    throw error;
+  }
+};
+
+export const saveToken = async (tokenData) => {
+  if (useApi) {
+    try {
+      return await api.saveToken(tokenData);
+    } catch (error) {
+      console.error('API Error saving token:', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    const id = await db.tokens.add(tokenData);
+    return { ...tokenData, id };
+  } catch (error) {
+    console.error('Error saving token:', error);
+    throw error;
+  }
+};
+
+export const getTokenByValue = async (token) => {
+  if (useApi) {
+    try {
+      return await api.getTokenByValue(token);
+    } catch (error) {
+      console.error('API Error getting token:', error);
+      return null;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    return await db.tokens.where('token').equals(token).first();
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
   }
 };
 
 // Briefing operations
-export const saveBriefing = async (briefing) => {
+export const getAllBriefings = async () => {
   if (useApi) {
-    if (briefing.id) {
-      // Update existing briefing
-      const updatedBriefing = await api.updateBriefing(briefing);
-      return updatedBriefing.id;
-    } else {
-      // Add new briefing
-      const newBriefing = await api.createBriefing(briefing);
-      return newBriefing.id;
+    try {
+      return await api.getBriefings();
+    } catch (error) {
+      console.error('API Error getting all briefings:', error);
+      return [];
     }
-  } else {
-    if (briefing.id) {
-      // Update existing briefing
-      await db.briefings.update(briefing.id, briefing);
-      return briefing.id;
-    } else {
-      // Add new briefing
-      return await db.briefings.add(briefing);
-    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    return await db.briefings.toArray();
+  } catch (error) {
+    console.error('Error getting all briefings:', error);
+    return [];
   }
 };
 
 export const getBriefing = async (id) => {
   if (useApi) {
-    return await api.getBriefing(id);
-  } else {
+    try {
+      return await api.getBriefing(id);
+    } catch (error) {
+      console.error('API Error getting briefing:', error);
+      return null;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
     return await db.briefings.get(id);
+  } catch (error) {
+    console.error('Error getting briefing:', error);
+    return null;
   }
 };
 
-export const getAllBriefings = async () => {
+export const saveBriefing = async (briefing) => {
   if (useApi) {
-    return await api.getBriefings();
-  } else {
-    return await db.briefings.toArray();
+    try {
+      if (briefing.id || briefing._id) {
+        const id = briefing.id || briefing._id;
+        return await api.updateBriefing(briefing);
+      } else {
+        return await api.createBriefing(briefing);
+      }
+    } catch (error) {
+      console.error('API Error saving briefing:', error);
+      throw error;
+    }
   }
-};
-
-export const deleteBriefing = async (id) => {
-  if (useApi) {
-    await api.deleteBriefing(id);
-  } else {
-    // Delete the briefing and all related attendances
-    await db.transaction('rw', db.briefings, db.attendances, async () => {
-      await db.attendances.where('briefingId').equals(id).delete();
-      await db.briefings.delete(id);
-    });
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    if (briefing.id) {
+      await db.briefings.update(briefing.id, briefing);
+      return briefing;
+    } else {
+      const id = await db.briefings.add(briefing);
+      return { ...briefing, id };
+    }
+  } catch (error) {
+    console.error('Error saving briefing:', error);
+    throw error;
   }
 };
 
 // Attendance operations
-export const saveAttendance = async (attendance) => {
+export const getBriefingAttendances = async (briefingId) => {
   if (useApi) {
-    if (attendance.id) {
-      // Update existing attendance
-      const updatedAttendance = await api.updateAttendance(attendance);
-      return updatedAttendance;
-    } else {
-      // Add new attendance
-      const newAttendance = await api.createAttendance(attendance);
-      return newAttendance;
+    try {
+      return await api.getAttendances(briefingId);
+    } catch (error) {
+      console.error('API Error getting briefing attendances:', error);
+      return [];
     }
-  } else {
-    if (attendance.id) {
-      // Update existing attendance
-      await db.attendances.update(attendance.id, attendance);
-      return await db.attendances.get(attendance.id);
-    } else {
-      // Add new attendance
-      const id = await db.attendances.add(attendance);
-      return await db.attendances.get(id);
-    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    return await db.attendances.where('briefingId').equals(briefingId).toArray();
+  } catch (error) {
+    console.error('Error getting briefing attendances:', error);
+    return [];
   }
 };
 
-export const getBriefingAttendances = async (briefingId) => {
+export const saveAttendance = async (attendance) => {
   if (useApi) {
-    return await api.getAttendances(briefingId);
-  } else {
-    return await db.attendances.where('briefingId').equals(briefingId).toArray();
+    try {
+      if (attendance.id || attendance._id) {
+        return await api.updateAttendance(attendance);
+      } else {
+        return await api.createAttendance(attendance);
+      }
+    } catch (error) {
+      console.error('API Error saving attendance:', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    if (attendance.id) {
+      await db.attendances.update(attendance.id, attendance);
+      return attendance;
+    } else {
+      const id = await db.attendances.add(attendance);
+      return { ...attendance, id };
+    }
+  } catch (error) {
+    console.error('Error saving attendance:', error);
+    throw error;
   }
 };
 
 export const deleteAttendance = async (id) => {
   if (useApi) {
-    await api.deleteAttendance(id);
-  } else {
+    try {
+      await api.deleteAttendance(id);
+      return { success: true };
+    } catch (error) {
+      console.error('API Error deleting attendance:', error);
+      throw error;
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
     await db.attendances.delete(id);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting attendance:', error);
+    throw error;
   }
 };
 
 // Project operations
 export const getAllProjects = async () => {
   if (useApi) {
-    return await api.getProjects();
-  } else {
-    return await db.projects.toArray();
+    try {
+      return await api.getProjects();
+    } catch (error) {
+      console.error('API Error getting all projects:', error);
+      return [];
+    }
   }
-};
-
-export const getProject = async (id) => {
-  if (useApi) {
-    return await api.getProject(id);
-  } else {
-    return await db.projects.get(id);
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
+    return await db.projects.toArray();
+  } catch (error) {
+    console.error('Error getting all projects:', error);
+    return [];
   }
 };
 
 // User operations
 export const getAllUsers = async () => {
   if (useApi) {
-    return await api.getUsers();
-  } else {
+    try {
+      return await api.getUsers();
+    } catch (error) {
+      console.error('API Error getting all users:', error);
+      return [];
+    }
+  }
+  
+  // Fallback to IndexedDB if API is not used
+  await ensureDb();
+  try {
     return await db.users.toArray();
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    return [];
   }
 };
 
-export const getUsersByRole = async (role) => {
-  if (useApi) {
-    return await api.getUsersByRole(role);
-  } else {
-    return await db.users.where('role').equals(role).toArray();
+// Initialize the database
+(async () => {
+  try {
+    db = await createDatabase();
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
   }
-};
-
-// Initialize the database when this module is imported
-initializeDatabase().catch(err => {
-  console.error('Failed to initialize database:', err);
-});
-
-// Check if we should use API by trying to connect
-api.getBriefings()
-  .then(() => {
-    console.log('Connected to API successfully, using cloud storage');
-    setUseApi(true);
-  })
-  .catch(err => {
-    console.log('Could not connect to API, using local storage', err);
-    setUseApi(false);
-  });
+})();
 
 export default db;

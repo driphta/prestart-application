@@ -9,6 +9,14 @@ import SignOnSheet from './pages/SignOnSheet';
 import ViewBriefing from './pages/ViewBriefing';
 import NotFound from './pages/NotFound';
 import MigrationModal from './components/MigrationModal';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import Profile from './pages/Profile';
+import TestAuth from './pages/TestAuth';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
 
 function App() {
   const [mode, setMode] = useState(() => {
@@ -184,23 +192,46 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Header toggleColorMode={toggleColorMode} mode={mode} />
-      <Container component="main" sx={{ py: 4, minHeight: 'calc(100vh - 128px)' }}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/briefing/new" element={<BriefingForm />} />
-          <Route path="/briefing/:id" element={<ViewBriefing />} />
-          <Route path="/briefing/:id/edit" element={<BriefingForm />} />
-          <Route path="/briefing/:id/sign-on" element={<SignOnSheet />} />
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </Routes>
-      </Container>
-      <Footer />
-      <MigrationModal />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Header toggleColorMode={toggleColorMode} mode={mode} />
+        <Container component="main" sx={{ py: 4, minHeight: 'calc(100vh - 128px)' }}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/404" element={<NotFound />} />
+            
+            {/* Test route - development only */}
+            <Route path="/test-auth" element={<TestAuth />} />
+            
+            {/* Protected routes - require authentication */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              
+              {/* Routes that require Site Supervisor role */}
+              <Route element={<ProtectedRoute requiredRole="site_supervisor" />}>
+                <Route path="/briefing/new" element={<BriefingForm />} />
+                <Route path="/briefing/:id/edit" element={<BriefingForm />} />
+              </Route>
+              
+              {/* Routes accessible by both roles */}
+              <Route path="/briefing/:id" element={<ViewBriefing />} />
+              <Route path="/briefing/:id/sign-on" element={<SignOnSheet />} />
+            </Route>
+            
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </Container>
+        <Footer />
+        <MigrationModal />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
