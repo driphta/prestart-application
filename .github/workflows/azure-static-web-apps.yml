@@ -15,41 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+          lfs: false
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2
         with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
-          
-      - name: Build
-        run: |
-          cd frontend
-          npm run build
-          
-      - name: Create staticwebapp.config.json
-        run: |
-          echo '{
-            "navigationFallback": {
-              "rewrite": "/index.html",
-              "exclude": ["/static/*", "/assets/*", "/*.{png,jpg,gif,svg,ico}"]
-            },
-            "routes": [
-              {
-                "route": "/*",
-                "rewrite": "/index.html"
-              }
-            ]
-          }' > frontend/build/staticwebapp.config.json
-          
-      - name: Deploy
+          node-version: '16'
+
+      - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -59,7 +35,7 @@ jobs:
           app_location: "/frontend"
           api_location: ""
           output_location: "build"
-          skip_app_build: true
+          app_build_command: "npm run build"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
