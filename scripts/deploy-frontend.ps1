@@ -1,11 +1,11 @@
-# Script to deploy frontend code to Azure Static Web Apps
+# Script to deploy frontend code to Azure Static Web App
 # This script should be run in PowerShell with Azure CLI installed and logged in
 
 # Configuration variables - modify these as needed
 $resourceGroupName = "PrestartApp-RG"  # Your existing resource group
-$staticWebAppName = "prestart-app"  # Your existing Static Web App name
+$staticWebAppName = "PrestartApplication"  # Your existing Static Web App name
 $frontendDir = "../frontend"  # Path to frontend directory
-$buildDir = "../frontend/build"  # Path to frontend build directory
+$apiUrl = "https://prestart-api1.azurewebsites.net/api"  # URL to your backend API
 
 # Change to the frontend directory
 Write-Host "Installing dependencies..."
@@ -14,44 +14,42 @@ npm install
 
 # Build the frontend
 Write-Host "Building the frontend..."
-$env:REACT_APP_API_URL = "https://prestart-api1.azurewebsites.net/api"
+$env:REACT_APP_API_URL = $apiUrl
 npm run build
 
-# Deploy to Azure Static Web Apps using the Azure CLI
-Write-Host "Deploying to Azure Static Web App $staticWebAppName..."
-
-# Create a deployment package
-$deploymentZip = "frontend-deployment.zip"
-if (Test-Path $deploymentZip) {
-    Remove-Item $deploymentZip
+# Check if the Azure CLI command exists
+$azCliVersion = az --version 2>$null
+if (-not $azCliVersion) {
+    Write-Host "Azure CLI is not installed. Please install it and try again."
+    exit 1
 }
 
-# Create a zip file with the build directory content
-Set-Location $buildDir
-Compress-Archive -Path * -DestinationPath "../$deploymentZip" -Force
-Set-Location ..
+# Check if the Static Web App exists
+$staticWebAppExists = az staticwebapp show --name $staticWebAppName --resource-group $resourceGroupName --query "name" 2>$null
+if (-not $staticWebAppExists) {
+    Write-Host "Static Web App $staticWebAppName does not exist in resource group $resourceGroupName."
+    exit 1
+}
 
-# Use the Azure CLI to deploy the static site
-# There are multiple ways to deploy depending on your Azure CLI version
-# Try the newer CLI method first
-$cliCommand = "az staticwebapp deploy --name $staticWebAppName --resource-group $resourceGroupName --source-path $buildDir"
-$deployResult = Invoke-Expression $cliCommand 2>&1
-
-# If the first method fails, try the alternate method (for older CLI versions)
-if ($deployResult -like "*'deploy' is misspelled or not recognized by the system*") {
-    Write-Host "Using alternative deployment method for older Azure CLI versions..."
+# Deploy to Azure Static Web App using the appropriate method
+# First try the newer CLI command
+$deployResult = az staticwebapp deploy --name $staticWebAppName --resource-group $resourceGroupName --source-path "build" 2>$null
+if (-not $deployResult) {
+    # If that fails, try using the SWA CLI
+    Write-Host "Falling back to SWA CLI for deployment..."
     
-    # For older CLI versions or SWA CLI
-    # Check if the SWA CLI is installed
-    $swaInstalled = npm list -g @azure/static-web-apps-cli 2>$null
-    
-    if (-not $swaInstalled) {
-        Write-Host "Installing Azure Static Web Apps CLI..."
+    # Check if SWA CLI is installed
+    $swaCli = npx swa -v 2>$null
+    if (-not $swaCli) {
+        Write-Host "Installing SWA CLI..."
         npm install -g @azure/static-web-apps-cli
     }
     
-    # Deploy using the SWA CLI
-    swa deploy $buildDir --env production --deployment-token (az staticwebapp secrets list --name $staticWebAppName --resource-group $resourceGroupName --query "properties.apiKey" -o tsv)
+    # Get the deployment token
+    $deploymentToken = az staticwebapp secrets list --name $staticWebAppName --resource-group $resourceGroupName --query "properties.apiKey" -o tsv
+    
+    # Deploy using SWA CLI
+    npx swa deploy build --deployment-token $deploymentToken
 }
 
 # Return to the original directory
